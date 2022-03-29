@@ -1,6 +1,6 @@
 # Enter Serverless Functions Journey with Quarkus
 
-This hands-on lab showcases how quickly developers can create cloud-native microservice project using Quarkus. Then, the application can be deployed to a function to AWS Lambda and OpenShift Serverless with JVM and Native mode.
+This hands-on lab showcases how quickly developers can create cloud-native microservice project using Quarkus. Then, the application can be deployed to a function to AWS Lambda and OpenShift Serverless with JVM mode.
 
 # Pre-requisites
 
@@ -10,7 +10,7 @@ Before you get started with the hands-on labs, if you already haven't user accou
 
 ![dev-sandbox](./img/dev-sandbox.png)
 
-* Sing in [Amazon Web Services](https://aws.amazon.com/marketplace/management/signin). You might need to add your personal credit card information which won't charge for the function deployment during the lab. Because the function will be deleted at the end of the workshop.
+* Sign in [Amazon Web Services](https://aws.amazon.com/marketplace/management/signin). You might need to add your personal credit card information which won't charge for the function deployment during the lab. Because the function will be deleted at the end of the workshop.
 
 ![aws-signin](./img/aws-signin.png)
 
@@ -154,26 +154,9 @@ quarkus-hibernate-search-orm-elasticsearch-aws
 ...
 ```
 
-Before we deploy, let's add a new method and class to expose a new function on AWS Lambda.
+Before we deploy, let's add a new method to expose a new function on AWS Lambda.
 
-Create a new `GreetingService.java` file in _src/main/java/org/acme/_. Then copy the following code:
-
-```java
-package org.acme;
-
-import javax.enterprise.context.ApplicationScoped;
-
-@ApplicationScoped
-public class GreetingService {
-
-    public String greeting(String name) {
-        return "Enter Serverless Functions with Quarkus, " + name;
-    }
-
-}
-```
-
-Update `GreetingResource.java` file in _src/main/java/org/acme/_ to inject a CDI bean as well as modifying the return string in _hello_ method:
+Update `GreetingResource.java` file in _src/main/java/org/acme/_ to add a new method as well as modifying the return string in _hello_ method:
 
 ```java
 package org.acme;
@@ -189,14 +172,11 @@ import org.jboss.resteasy.annotations.jaxrs.PathParam;
 @Path("/hello")
 public class GreetingResource {
 
-    @Inject
-    GreetingService greetingService;
-
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/greeting/{name}")
     public String greeting(@PathParam String name) {
-        return greetingService.greeting(name);
+        return "Enter Serverless Functions with Quarkus, " + name;
     }
 
     @GET
@@ -241,6 +221,7 @@ Enter Serverless Functions with Quarkus, daniel
 
 **Note**: You don’t need to stop and re-run the serverless application because Quarkus will reload the changes automatically via the Live Coding feature.
 
+<!--
 To mirror the AWS Lambda environment as closely as possible in a dev environment, the Quarkus Amazon Lambda extension boots up a mock AWS Lambda event server in Quarkus Dev and Test mode. This mock event server simulates a true AWS Lambda environment.
 
 While running in Quarkus Dev Mode, you can feed events to it by doing an HTTP POST to http://localhost:8080. The mock event server will receive the events and your lambda will be invoked. You can perform live coding on your lambda and changes will automatically be recompiled and available the next invocation you make.
@@ -267,6 +248,7 @@ Then, you will see the test case passed as below:
 All 1 test is passing (0 skipped), 1 test was run in 3541ms. Tests completed at 09:09:41.
 Press [r] to re-run, [o] Toggle test output, [h] for more options>
 ```
+-->
 
 Stop the Dev Mode! Package the application using the following Quarkus CLI:
 
@@ -289,6 +271,7 @@ Inspect generated files in the _target_ directory:
 * **sam.jvm.yaml** - (optional) for use with sam cli and local testing
 * **sam.native.yaml** - (optional) for use with sam cli and native local testing
 
+<!-- 
 **Note**: If you have already tested the function using live coding with Quarkus Dev mode, you can skip the function simulation locally. Then jump into the deployment step.
 
 To simulate the function locally using [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html). The AWS SAM command line interface (CLI) requires you to set AWS credentials so that it can make calls to AWS services on your behalf. Find more information how to set up AWS credentials for SAM CLI [here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html).
@@ -338,6 +321,7 @@ Enter Serverless Functions with Quarkus, awslocal
 Stop the local testing by _CTRL-C_ or _CMD-C_.
 
 **Note**: You can also use the live coding feature for Lambda functions development locally. Find more information [here](https://quarkus.io/guides/amazon-lambda#live-coding-and-unitintegration-testing)
+-->
 
 Deploy the function to AWS Lambda using SAM CLI:
 
@@ -568,6 +552,7 @@ You can showcase the performance stats to compare JVM vs. Native function in Clo
 
 ![function](./img/aws-metrics.png)
 
+<!-- 
 ## Optimize the function and make it portable using Quarkus Funqy  <a name="OptimizeFunction"></a>
 
 Add a Quarkus Funqy extension for Amazon Lambda deployment(_quarkus-funqy-amazon-lambda_) and remove the _quarkus-amazon-lambda-http_ extension:
@@ -670,6 +655,7 @@ sam delete --stack-name quarkus-native-function
 ```
 
 If you want to deploy the Quarkus Funqy application as a native executables, you need to package a native executable first using `./mvnw clean package -Pnative` then run the wrapper script using `LAMBDA_ROLE_ARN=<YOUR_OWN_ARN> sh target/manage.sh native create`.
+-->
 
 ## Deploy the function to Red Hat OpenShift Serverless  <a name="DeployFunctiontoOCP"></a>
 
@@ -680,7 +666,28 @@ Add an OpenShift and Knative Funqy extensions then remove an existing AWS extens
 ```shell
 quarkus ext add quarkus-funqy-knative-events quarkus-openshift
 
-quarkus ext remove quarkus-funqy-amazon-lambda
+quarkus ext remove quarkus-amazon-lambda-http
+```
+
+Update the `GreetingResource.java` file to use `@funq` annotation. Then, remove unnecessary packages and annotations(_@Path, @PathParam, @GET_).
+
+```java
+package org.acme;
+
+import io.quarkus.funqy.Funq;
+
+public class GreetingResource {
+
+    @Funq
+    public String greeting(String name) {
+        return "Enter Serverless Functions with Quarkus, " + name;
+    }
+
+    @Funq
+    public String hello() {
+        return "Hello Serverless";
+    }
+}
 ```
 
 Update the `application.properties` for OpenShift Serverless deployment:
@@ -735,7 +742,9 @@ You might see the pod is already **terminated** since the scale-down-to-zero is 
 Copy the `Route URL` in Resource tab menu then invoke the function using HTTPie:
 
 ```shell
-echo '"Daniel Oh"' | http https://enter-serverless-function-doh-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com
+http ${YOUR_ROUTE_URL}/hello
+
+echo '"Daniel Oh"' | http ${YOUR_ROUTE_URL}/greeting
 ```
 
 The output should look like:
@@ -756,8 +765,28 @@ When you got back to the Topology view, you will see the Quarkus pod is automati
 
 ![openshift](./img/openshift-funq-up.png)
 
-**Note**: When you deploy a native executable, the build will take more than 5 mins to finish. You might also have an out of memory error. To fix it, make sure to set `Dquarkus.native.native-image-xmx=4g`.
+**Note**: When you build a native executable on macOS, you need to add the following configuration in _src/main/resources/application.properties_ for building a Linux format image using Docker runtime:
 
+```yaml
+quarkus.native.container-runtime=docker 
+```
+
+**Note**: When you deploy a native executable, the build will take more than 5 mins to finish. You might also have an out of memory error. To fix it, make sure to set `-Dquarkus.native.native-image-xmx=4g`.
+
+Deploy the Quarkus native version to OpenShift
+```shell
+quarkus build --native --no-tests -Dquarkus.native.native-image-xmx=4g
+```
+
+Once the deployment is complete, then execute native version of app
+
+```shell
+http ${YOUR_ROUTE_URL}/hello
+
+echo '"Daniel Oh"' | http ${YOUR_ROUTE_URL}/greeting
+```
+
+<!--
 ## Generate a new function project using Kn func CLI  <a name="GenerateNewFuncProject"></a>
 
 **Note**: Red Hat OpenShift Serverless Function is still a Tech Preview feature. If you haven't installed Knative command (kn) yet, find more information [here](https://docs.openshift.com/container-platform/4.9/serverless/cli_tools/advanced-kn-config.html).
@@ -822,6 +851,7 @@ Data,
 When you go to the pod logs in OpenShift console, you will see the same cloudevent message output:
 
 ![openshift](./img/openshift-cloudevent-log.png)
+-->
 
 ### Congratulations!
 
