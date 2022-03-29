@@ -161,7 +161,6 @@ Update `GreetingResource.java` file in _src/main/java/org/acme/_ to add a new me
 ```java
 package org.acme;
 
-import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
